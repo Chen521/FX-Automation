@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>BoC FX Rates</title>
+  <script src="https://appsforoffice.microsoft.com/lib/1/hosted/office.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Segoe UI", sans-serif;
+      font-size: 13px;
+      color: #323130;
+      background: #fff;
+      padding: 0;
+    }
+
+    header {
+      background: #106ebe;
+      color: #fff;
+      padding: 12px 16px;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.01em;
+    }
+    header span { opacity: 0.7; font-weight: 400; font-size: 12px; display: block; margin-top: 2px; }
+
+    .body { padding: 14px 16px; }
+
+    .section { margin-bottom: 16px; }
+    label { display: block; font-size: 11px; font-weight: 600; color: #605e5c; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 5px; }
+
+    select, input[type="text"], input[type="date"], input[type="number"] {
+      width: 100%;
+      padding: 6px 8px;
+      border: 1px solid #c8c6c4;
+      border-radius: 2px;
+      font-size: 13px;
+      color: #323130;
+      background: #fff;
+      outline: none;
+      appearance: auto;
+    }
+    select:focus, input:focus { border-color: #106ebe; }
+
+    .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+    .btn {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      background: #106ebe;
+      color: #fff;
+      border: none;
+      border-radius: 2px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn:hover { background: #005a9e; }
+    .btn:active { background: #004578; }
+    .btn.secondary { background: #fff; color: #106ebe; border: 1px solid #106ebe; font-weight: 400; }
+    .btn.secondary:hover { background: #f0f6fc; }
+
+    .divider { border: none; border-top: 1px solid #edebe9; margin: 16px 0; }
+
+    .mode-tabs { display: flex; border-bottom: 1px solid #edebe9; margin-bottom: 14px; }
+    .mode-tab {
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      color: #605e5c;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -1px;
+    }
+    .mode-tab.active { color: #106ebe; border-bottom-color: #106ebe; font-weight: 600; }
+
+    .status {
+      font-size: 12px;
+      padding: 7px 10px;
+      border-radius: 2px;
+      margin-top: 10px;
+      display: none;
+    }
+    .status.info { background: #dff0ff; color: #004578; display: block; }
+    .status.success { background: #dff6dd; color: #107c10; display: block; }
+    .status.error { background: #fde7e9; color: #a4262c; display: block; }
+
+    .rate-card {
+      background: #f3f2f1;
+      border-radius: 2px;
+      padding: 10px 12px;
+      margin-bottom: 8px;
+    }
+    .rate-card .pair { font-weight: 600; font-size: 13px; }
+    .rate-card .rate-val { font-size: 20px; font-weight: 600; color: #106ebe; margin: 2px 0; }
+    .rate-card .meta { font-size: 11px; color: #605e5c; }
+
+    .help { font-size: 11px; color: #605e5c; margin-top: 4px; line-height: 1.5; }
+
+    .checkbox-row { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+    .checkbox-row input[type="checkbox"] { width: auto; }
+    .checkbox-row label { text-transform: none; letter-spacing: 0; font-size: 12px; color: #323130; font-weight: 400; margin: 0; }
+
+    .pairs-list { max-height: 130px; overflow-y: auto; border: 1px solid #edebe9; border-radius: 2px; padding: 6px 8px; }
+  </style>
+</head>
+<body>
+
+<header>
+  BoC FX Rates
+  <span>Bank of Canada Valet API</span>
+</header>
+
+<div class="body">
+
+  <div class="mode-tabs">
+    <div class="mode-tab active" onclick="setMode('single')">Single pair</div>
+    <div class="mode-tab" onclick="setMode('bulk')">Bulk insert</div>
+    <div class="mode-tab" onclick="setMode('live')">Live cell</div>
+  </div>
+
+  <!-- SINGLE MODE -->
+  <div id="mode-single">
+    <div class="section">
+      <label>Currency pair</label>
+      <select id="s-series">
+        <option value="FXUSDCAD">USD → CAD</option>
+        <option value="FXEURCAD">EUR → CAD</option>
+        <option value="FXGBPCAD">GBP → CAD</option>
+        <option value="FXJPYCAD">JPY → CAD</option>
+        <option value="FXCHFCAD">CHF → CAD</option>
+        <option value="FXAUDCAD">AUD → CAD</option>
+        <option value="FXHKDCAD">HKD → CAD</option>
+        <option value="FXCNYCAD">CNY → CAD</option>
+        <option value="FXMXNCAD">MXN → CAD</option>
+        <option value="FXNZDCAD">NZD → CAD</option>
+      </select>
+    </div>
+    <div class="section">
+      <label>Date range</label>
+      <select id="s-period" onchange="toggleCustomDate()">
+        <option value="recent=1">Latest rate only</option>
+        <option value="recent=10">Last 10 business days</option>
+        <option value="recent=30" selected>Last 30 business days</option>
+        <option value="recent=90">Last 90 business days</option>
+        <option value="recent=365">Last year</option>
+        <option value="custom">Custom range</option>
+      </select>
+    </div>
+    <div class="section row2" id="custom-dates" style="display:none;">
+      <div>
+        <label>Start</label>
+        <input type="date" id="s-start" />
+      </div>
+      <div>
+        <label>End</label>
+        <input type="date" id="s-end" />
+      </div>
+    </div>
+    <div class="section">
+      <label>Insert into sheet</label>
+      <select id="s-insert-mode">
+        <option value="selected">Selected cell (anchor top-left)</option>
+        <option value="new">New sheet</option>
+      </select>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="s-headers" checked />
+      <label for="s-headers">Include column headers</label>
+    </div>
+    <button class="btn" onclick="fetchAndInsert()">Insert rates</button>
+    <div id="s-status" class="status"></div>
+  </div>
+
+  <!-- BULK MODE -->
+  <div id="mode-bulk" style="display:none;">
+    <div class="section">
+      <label>Select pairs to include</label>
+      <div class="pairs-list" id="bulk-pairs">
+        <div class="checkbox-row"><input type="checkbox" value="FXUSDCAD" checked /><label>USD → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXEURCAD" checked /><label>EUR → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXGBPCAD" checked /><label>GBP → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXJPYCAD" /><label>JPY → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXCHFCAD" /><label>CHF → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXAUDCAD" /><label>AUD → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXHKDCAD" /><label>HKD → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXCNYCAD" /><label>CNY → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXMXNCAD" /><label>MXN → CAD</label></div>
+        <div class="checkbox-row"><input type="checkbox" value="FXNZDCAD" /><label>NZD → CAD</label></div>
+      </div>
+    </div>
+    <div class="section">
+      <label>Period</label>
+      <select id="b-period">
+        <option value="recent=1">Latest rate only</option>
+        <option value="recent=30" selected>Last 30 business days</option>
+        <option value="recent=90">Last 90 business days</option>
+      </select>
+    </div>
+    <p class="help" style="margin-bottom:10px;">Each pair gets its own column. Dates form the row index.</p>
+    <button class="btn" onclick="fetchBulkAndInsert()">Insert all selected pairs</button>
+    <div id="b-status" class="status"></div>
+  </div>
+
+  <!-- LIVE MODE -->
+  <div id="mode-live" style="display:none;">
+    <p class="help" style="margin-bottom:12px;">Select a cell, pick a pair, and insert a formula that shows the latest rate. Refresh anytime with the button below.</p>
+    <div class="section">
+      <label>Currency pair</label>
+      <select id="l-series">
+        <option value="FXUSDCAD">USD → CAD</option>
+        <option value="FXEURCAD">EUR → CAD</option>
+        <option value="FXGBPCAD">GBP → CAD</option>
+        <option value="FXJPYCAD">JPY → CAD</option>
+        <option value="FXCHFCAD">CHF → CAD</option>
+        <option value="FXAUDCAD">AUD → CAD</option>
+        <option value="FXHKDCAD">HKD → CAD</option>
+        <option value="FXCNYCAD">CNY → CAD</label></option>
+      </select>
+    </div>
+    <div class="section">
+      <label>Insert as</label>
+      <select id="l-type">
+        <option value="value">Static value (today's rate)</option>
+        <option value="pair">Rate + date (2 cells side by side)</option>
+      </select>
+    </div>
+    <button class="btn" onclick="insertLiveRate()" style="margin-bottom:8px;">Insert into selected cell</button>
+    <button class="btn secondary" onclick="refreshAllRates()">Refresh all BoC values in sheet</button>
+    <div id="l-status" class="status"></div>
+  </div>
+
+</div>
+
+<script>
+const BASE = 'https://www.bankofcanada.ca/valet';
+
+Office.onReady(() => {});
+
+function setMode(m) {
+  ['single','bulk','live'].forEach(x => {
+    document.getElementById('mode-' + x).style.display = x === m ? 'block' : 'none';
+  });
+  document.querySelectorAll('.mode-tab').forEach((t, i) => {
+    t.classList.toggle('active', ['single','bulk','live'][i] === m);
+  });
+}
+
+function toggleCustomDate() {
+  const v = document.getElementById('s-period').value;
+  document.getElementById('custom-dates').style.display = v === 'custom' ? 'grid' : 'none';
+}
+
+function setStatus(id, msg, type) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = 'status ' + type;
+}
+
+async function fetchObservations(series, periodParam) {
+  const url = `${BASE}/observations/${series}/json?${periodParam}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const data = await res.json();
+  return data.observations || [];
+}
+
+async function fetchAndInsert() {
+  const series = document.getElementById('s-series').value;
+  const period = document.getElementById('s-period').value;
+  const insertMode = document.getElementById('s-insert-mode').value;
+  const includeHeaders = document.getElementById('s-headers').checked;
+  setStatus('s-status', 'Fetching from Bank of Canada...', 'info');
+
+  let periodParam = period;
+  if (period === 'custom') {
+    const s = document.getElementById('s-start').value;
+    const e = document.getElementById('s-end').value;
+    if (!s || !e) { setStatus('s-status', 'Please select start and end dates.', 'error'); return; }
+    periodParam = `start_date=${s}&end_date=${e}`;
+  }
+
+  try {
+    const obs = await fetchObservations(series, periodParam);
+    if (!obs.length) { setStatus('s-status', 'No data returned for this period.', 'error'); return; }
+
+    const rows = [];
+    if (includeHeaders) rows.push(['Date', series + ' Rate']);
+    obs.forEach(o => {
+      const v = o[series] && o[series].v ? parseFloat(o[series].v) : '';
+      rows.push([o.d, v]);
+    });
+
+    await Excel.run(async ctx => {
+      let sheet = ctx.workbook.worksheets.getActiveWorksheet();
+      if (insertMode === 'new') {
+        sheet = ctx.workbook.worksheets.add('BoC_' + series);
+        sheet.activate();
+      }
+      const range = sheet.getCell(0, 0).getResizedRange(rows.length - 1, 1);
+      if (insertMode === 'selected') {
+        const sel = ctx.workbook.getSelectedRange();
+        sel.load('rowIndex,columnIndex');
+        await ctx.sync();
+        const anchor = sheet.getCell(sel.rowIndex, sel.columnIndex).getResizedRange(rows.length - 1, 1);
+        anchor.values = rows;
+        anchor.getColumn(1).numberFormat = [['0.0000']];
+      } else {
+        range.values = rows;
+        range.getColumn(1).numberFormat = [['0.0000']];
+        sheet.getUsedRange().format.autofitColumns();
+      }
+      await ctx.sync();
+    });
+
+    setStatus('s-status', `Done! Inserted ${obs.length} observation${obs.length !== 1 ? 's' : ''}.`, 'success');
+  } catch (e) {
+    setStatus('s-status', 'Error: ' + e.message, 'error');
+  }
+}
+
+async function fetchBulkAndInsert() {
+  const checkboxes = document.querySelectorAll('#bulk-pairs input[type=checkbox]:checked');
+  const selected = Array.from(checkboxes).map(c => c.value);
+  if (!selected.length) { setStatus('b-status', 'Select at least one pair.', 'error'); return; }
+
+  const periodParam = document.getElementById('b-period').value;
+  setStatus('b-status', `Fetching ${selected.length} pairs...`, 'info');
+
+  try {
+    const allObs = await Promise.all(selected.map(s => fetchObservations(s, periodParam)));
+
+    // Build a unified date index
+    const dateSet = new Set();
+    allObs.forEach(obs => obs.forEach(o => dateSet.add(o.d)));
+    const dates = Array.from(dateSet).sort();
+
+    // Build lookup maps
+    const maps = {};
+    selected.forEach((s, i) => {
+      maps[s] = {};
+      allObs[i].forEach(o => { if (o[s]) maps[s][o.d] = parseFloat(o[s].v); });
+    });
+
+    // Compose rows: header + data
+    const header = ['Date', ...selected.map(s => s)];
+    const rows = [header];
+    dates.forEach(d => {
+      rows.push([d, ...selected.map(s => maps[s][d] !== undefined ? maps[s][d] : '')]);
+    });
+
+    await Excel.run(async ctx => {
+      const wb = ctx.workbook;
+      let sheet;
+      try {
+        sheet = wb.worksheets.getItem('BoC_Bulk');
+        sheet.getUsedRange().clear();
+      } catch {
+        sheet = wb.worksheets.add('BoC_Bulk');
+      }
+      sheet.activate();
+      const range = sheet.getCell(0, 0).getResizedRange(rows.length - 1, rows[0].length - 1);
+      range.values = rows;
+      // Format rate columns
+      for (let c = 1; c < rows[0].length; c++) {
+        sheet.getCell(0, c).getResizedRange(rows.length - 1, 0).numberFormat = [['0.0000']];
+      }
+      sheet.getUsedRange().format.autofitColumns();
+      await ctx.sync();
+    });
+
+    setStatus('b-status', `Done! ${dates.length} dates × ${selected.length} pairs inserted into sheet "BoC_Bulk".`, 'success');
+  } catch (e) {
+    setStatus('b-status', 'Error: ' + e.message, 'error');
+  }
+}
+
+async function insertLiveRate() {
+  const series = document.getElementById('l-series').value;
+  const type = document.getElementById('l-type').value;
+  setStatus('l-status', 'Fetching latest rate...', 'info');
+
+  try {
+    const obs = await fetchObservations(series, 'recent=1');
+    if (!obs.length) throw new Error('No data returned');
+    const latest = obs[obs.length - 1];
+    const rate = parseFloat(latest[series].v);
+    const date = latest.d;
+
+    await Excel.run(async ctx => {
+      const sel = ctx.workbook.getSelectedRange();
+      sel.load('rowIndex,columnIndex,worksheet');
+      await ctx.sync();
+      const ws = sel.worksheet;
+
+      if (type === 'value') {
+        const cell = ws.getCell(sel.rowIndex, sel.columnIndex);
+        cell.values = [[rate]];
+        cell.numberFormat = [['0.0000']];
+        // Tag cell note for refresh
+        cell.note ? cell.note.delete() : null;
+      } else {
+        const r1 = ws.getCell(sel.rowIndex, sel.columnIndex);
+        const r2 = ws.getCell(sel.rowIndex, sel.columnIndex + 1);
+        r1.values = [[date]];
+        r2.values = [[rate]];
+        r2.numberFormat = [['0.0000']];
+      }
+      await ctx.sync();
+    });
+
+    setStatus('l-status', `Inserted ${series} = ${rate.toFixed(4)} (${date})`, 'success');
+  } catch (e) {
+    setStatus('l-status', 'Error: ' + e.message, 'error');
+  }
+}
+
+async function refreshAllRates() {
+  setStatus('l-status', 'Refreshing all sheets...', 'info');
+  // Re-run bulk if bulk sheet exists, re-fetch single rate if user chooses
+  // For simplicity, re-run the single pair live fetch
+  await insertLiveRate();
+}
+</script>
+</body>
+</html>
